@@ -5,69 +5,96 @@
  *  Author: haahm
  */ 
 
-
 #ifndef KEYPAD_H_
 #define KEYPAD_H_
+#define F_CPU 16000000UL
+
 #include "BIT_MATH.h"
 #include "ATmega32_Rrgiosters.h"
 #include <util/delay.h>
+
 #define INVALID_KEYPAD_PRESS (0xFF)
-const unsigned char arr[4][4]={{0,1,2,3},{4,5,6,7},{8,9,10,11},{12,13,14,15}};
+
+const unsigned char arr[4][4]={{0,1,2,3},
+							  {4,5,6,7},
+						      {8,9,10,11},
+							  {12,13,14,15}};
 								
 void keypad_init()
 {
+	// Set bits of columns as input
 	CLR_BIT(DDRD,7);
 	CLR_BIT(DDRD,6);
 	CLR_BIT(DDRD,5);
 	CLR_BIT(DDRD,3);
 	
-	SET_BIT(DDRC,5);
-	SET_BIT(DDRC,4);
-	SET_BIT(DDRC,3);
-	SET_BIT(DDRC,2);
-	
+	// Set pull up resistor on bits of columns
 	SET_BIT(PORTD,7);
 	SET_BIT(PORTD,6);
 	SET_BIT(PORTD,5);
 	SET_BIT(PORTD,3);
 	
+	// Set bits of rows as output
+	SET_BIT(DDRC,5);
+	SET_BIT(DDRC,4);
+	SET_BIT(DDRC,3);
+	SET_BIT(DDRC,2);
 }
 
 unsigned char keypad_Get_Value(void)
 {
-	unsigned char col,row,ans = INVALID_KEYPAD_PRESS;
+	unsigned char col, row, ans = INVALID_KEYPAD_PRESS;
+	
 	char key = 0;
-	for(row=5;row>=2;row--)
+	
+	unsigned char button = 0;
+	
+	for(row = 5; row >=2 ; row--)
 	{
-		PORTC |= 0b00111100;
-		CLR_BIT(PORTC,row);
-		for(col = 7;col>=3;col--)
+		SET_BIT(PORTC, 2);
+		SET_BIT(PORTC, 3);
+		SET_BIT(PORTC, 4);
+		SET_BIT(PORTC, 5);
+		
+		CLR_BIT(PORTC, row);
+		
+		for(col = 7; col >= 3; col--)
 		{
 			if(col == 4)
 			{
 				col--;
 			}
-			if(GET_BIT(PIND,col)==0)
+			
+			if(GET_BIT(PIND, col) == 0)
 			{
-				_delay_ms(120);
-				if(GET_BIT(PIND,col)==0)
+				_delay_ms(1000);
+				
+				if(GET_BIT(PIND, col) == 0)
 				{
-					if(col == 3)
+					if (button == 0)
 					{
-						ans = arr[5-row][7-col-1];
-						break;
-					}
-					else
-					{
-						ans = arr[5-row][7-col];
+						if(col == 3)
+						{
+							ans = arr[5 - row][7 - col - 1];
+							break;
+						}
+						else
+						{
+							ans = arr[5 - row][7 - col];
+						}
+						
+						button = 1;
 					}
 				}
+				else
+				{
+					button = 0;
+				}
 			}
-
 		}
-		
 	}
-	if(ans==0){
+	
+	if(ans == 0){
 		key = '7';
 	}
 	else if(ans == 1){
@@ -115,8 +142,8 @@ unsigned char keypad_Get_Value(void)
 	else if(ans == 15){
 		key = '+';
 	}
+	
 	return key;
 }
-
 
 #endif /* KEYPAD_H_ */
